@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#0b0f14">
+<title>Hypoxia Cognition Check</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="CogCheck">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<style>
+:root{
+  --bg:#0b0f14; --panel:#151b23; --line:#2a3340; --text:#e8edf3; --muted:#8b97a6;
+  --go:#2ea043; --god:#238636; --warn:#f0b429; --bad:#f85149; --good:#3fb950;
+  --key:#1f2731; --keyd:#3a4757;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--text);
+  font-family:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  overscroll-behavior:none;touch-action:manipulation}
+button{font:inherit;color:inherit;border:0;cursor:pointer}
+input{font:inherit}
+.screen{position:fixed;inset:0;display:flex;flex-direction:column;padding:16px}
+.scroll{display:block;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:40px}
+.wrap{max-width:560px;margin:0 auto}
+.test{user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+h1{font-size:28px;margin:8px 0 4px}
+h2{font-size:20px;margin:24px 0 10px}
+.sub{color:var(--muted);margin:0 0 18px;line-height:1.4}
+label{display:block;color:var(--muted);font-size:14px;margin:14px 0 0}
+label input{display:block;width:100%;margin-top:6px;padding:14px;border-radius:10px;
+  border:1px solid var(--line);background:var(--panel);color:var(--text);font-size:18px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 8px}
+.chip{padding:10px 14px;border-radius:999px;background:var(--panel);border:1px solid var(--line);font-size:16px}
+.chip.on{background:#1f6feb;border-color:#1f6feb;color:#fff}
+details{margin-top:16px;color:var(--muted)}
+summary{padding:8px 0;font-size:15px}
+.hint{color:var(--muted);font-size:13px;line-height:1.45}
+.big{display:block;width:100%;padding:20px;border-radius:14px;font-size:22px;font-weight:600;margin-top:16px}
+.go{background:var(--go);color:#fff}
+.go:active{background:var(--god)}
+.ghost{background:var(--panel);border:1px solid var(--line)}
+.small{padding:12px 14px;border-radius:10px;font-size:15px;background:var(--panel);border:1px solid var(--line)}
+.btnrow{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px}
+.btnrow .small{flex:1 1 45%}
+.danger{color:var(--bad)}
+
+/* intro screens */
+.intro{justify-content:center;text-align:center}
+.intro h1{font-size:34px}
+.intro p{font-size:20px;line-height:1.45;color:var(--text);max-width:520px;margin:10px auto}
+.intro .muted{color:var(--muted);font-size:16px}
+.intro .big{max-width:520px;margin-left:auto;margin-right:auto;padding:28px;font-size:26px}
+
+/* top bar during tests */
+.topbar{display:flex;align-items:center;gap:12px;height:44px;flex:0 0 auto}
+.bar{flex:1;height:8px;background:var(--panel);border-radius:4px;overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:#1f6feb}
+.count{flex:1;font-size:20px;color:var(--muted);font-variant-numeric:tabular-nums}
+.abort{padding:10px 14px;border-radius:10px;background:var(--panel);color:var(--muted);font-size:14px;white-space:nowrap}
+.abort.armed{background:var(--bad);color:#fff}
+
+/* reaction block */
+.pvt-area{flex:1;margin-top:10px;border-radius:18px;background:#000;display:flex;
+  align-items:center;justify-content:center;text-align:center;border:2px solid var(--line)}
+.pvt-msg{font-size:22px;color:var(--muted);padding:20px}
+.dot{width:min(62vw,52vh,340px);height:min(62vw,52vh,340px);border-radius:50%;background:var(--warn);display:none}
+.dot.on{display:block}
+
+/* color-word (Stroop) block */
+.sw{flex:1;display:flex;align-items:center;justify-content:center;font-size:clamp(56px,17vw,120px);font-weight:800;letter-spacing:2px;min-height:30%}
+.sw.fix{font-size:48px;color:var(--muted);font-weight:400}
+.cpad{flex:0 0 46%;display:grid;grid-template-columns:1fr 1fr;grid-auto-rows:1fr;gap:12px}
+.cbtn{border-radius:18px;font-size:clamp(20px,6vw,28px);font-weight:800;color:#111;display:flex;align-items:flex-end;justify-content:center;padding-bottom:12px;border:3px solid transparent}
+.cbtn.down{border-color:#fff;filter:brightness(.85)}
+.ex{display:inline-block;font-weight:800;font-size:40px;letter-spacing:1px}
+
+/* arithmetic block */
+.prob{flex:0 0 auto;text-align:center;font-size:clamp(52px,15vw,104px);font-weight:700;
+  margin:14px 0 6px;font-variant-numeric:tabular-nums;letter-spacing:1px}
+.ans{flex:0 0 auto;height:84px;margin:0 auto 14px;width:min(100%,420px);border-radius:14px;
+  background:var(--panel);border:2px solid var(--line);display:flex;align-items:center;justify-content:center;
+  font-size:56px;font-weight:700;font-variant-numeric:tabular-nums;transition:border-color .12s}
+.ans.sent{border-color:#1f6feb}
+.pad{flex:1;display:grid;grid-template-columns:repeat(3,1fr);grid-auto-rows:1fr;gap:10px;min-height:52%}
+.key{border-radius:16px;background:var(--key);font-size:clamp(34px,10vw,52px);font-weight:600;
+  display:flex;align-items:center;justify-content:center;border:1px solid var(--line)}
+.key.down{background:var(--keyd)}
+.key.del{color:var(--muted);font-size:clamp(28px,8vw,40px)}
+.key.ok{background:var(--go);color:#fff;font-size:clamp(24px,7vw,34px)}
+.key.ok.down{background:var(--god)}
+
+/* results (compact so it fits one screenshot) */
+.res{padding-top:12px}
+.savebtn{margin-top:10px;padding:18px;font-size:22px}
+.savebtn.done{background:var(--panel);border:1px solid var(--good);color:var(--good)}
+.savehint{font-size:13px;color:var(--muted);text-align:center;margin-top:6px;min-height:18px}
+.stats.c3{grid-template-columns:repeat(3,1fr);gap:8px}
+.stats.c3 .v{font-size:19px}
+.stats.c3 .v small{font-size:12px}
+.shot{background:#10243f;border:1px solid #1f6feb;border-radius:12px;padding:10px 12px;font-size:15px;line-height:1.4}
+.shot span{color:var(--muted);font-size:13px}
+.res h1{font-size:22px;margin:10px 0 2px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px;margin-top:10px}
+.card h3{margin:0 0 8px;font-size:13px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px 12px}
+.stats.c4{grid-template-columns:repeat(4,1fr);gap:8px}
+.stats.c4 .v{font-size:19px}
+.stats.c4 .v small{font-size:12px}
+.stat .v{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums}
+.stat .v small{font-size:14px;font-weight:600;color:var(--muted)}
+.stat .l{font-size:12px;color:var(--muted);margin-top:1px}
+.stat .d{font-size:12px;margin-top:1px;font-variant-numeric:tabular-nums}
+.worse{color:var(--bad)} .better{color:var(--good)} .same{color:var(--muted)}
+.meta{color:var(--muted);font-size:13px;line-height:1.5}
+.meta .muted{color:var(--muted)}
+.clock{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin:8px 0 6px}
+.clock .l{font-size:12px;color:var(--muted)}
+.clock .v{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums}
+textarea{width:100%;height:160px;margin-top:12px;background:#000;color:var(--text);border:1px solid var(--line);
+  border-radius:10px;padding:10px;font:12px ui-monospace,Menlo,Consolas,monospace}
+.note{background:#2b2111;border:1px solid #5a4314;color:#f5d48a;border-radius:10px;padding:12px;font-size:14px;margin-top:12px}
+table{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums}
+th,td{text-align:left;padding:8px 6px;border-bottom:1px solid var(--line);white-space:nowrap}
+th{color:var(--muted);font-weight:600}
+tr.click{cursor:pointer}
+.tablewrap{overflow-x:auto}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+(function(){
+"use strict";
+const app = document.getElementById('app');
+const $ = s => document.querySelector(s);
+
+/* ---------- arithmetic form: fixed difficulty plan ----------
+   Every test uses the same 10 slots in the same order. Each slot fixes the
+   operation, the 1-digit operand (3,4,6,7,8 — each used once per operation) and
+   the tens digit of the 2-digit number. Only the units digit varies, and it is
+   drawn from digits that force a carry (units × operand ≥ 10), excluding 5 and
+   repeated digits (e.g. 22) — so every form has the same structure and load. */
+const MATH_N = 10, MATH_FORM = 'F10-v1';
+const SLOTS = [
+  ['mul',3,2], ['div',6,1], ['mul',7,1], ['div',4,2], ['mul',6,3],
+  ['div',8,1], ['mul',4,1], ['div',3,3], ['mul',8,2], ['div',7,2]
+];
+function unitsFor(b, t){ const u = []; for(let d = 1; d <= 9; d++){ if(d === 5 || d === t) continue; if(d*b >= 10) u.push(d); } return u; }
+function buildForm(){
+  return SLOTS.map(([op,b,t], i) => {
+    const us = unitsFor(b,t), a = t*10 + us[Math.floor(Math.random()*us.length)];
+    return op === 'mul'
+      ? { slot:i+1, op, text:`${a} × ${b}`, ans:a*b }
+      : { slot:i+1, op, text:`${a*b} ÷ ${b}`, ans:a };
+  });
+}
+
+/* ---------- color-word (Stroop) form ----------
+   24 trials: each ink color 6 times — 3 congruent (word = ink) and 3 incongruent
+   (each other color word once). Order is shuffled with constraints so the same
+   ink or word never repeats back to back and a condition never runs > 3 in a row. */
+const STROOP_FORM = 'S24-v1';
+const SCOLORS = { RED:'#ef4444', BLUE:'#3b82f6', GREEN:'#22c55e', YELLOW:'#facc15' };
+const SNAMES = Object.keys(SCOLORS);
+function buildStroop(){
+  const base = [];
+  SNAMES.forEach(ink => {
+    for(let i = 0; i < 3; i++) base.push({ word: ink, ink, congruent: true });
+    SNAMES.filter(w => w !== ink).forEach(w => base.push({ word: w, ink, congruent: false }));
+  });
+  const fits = (seq, t) => {
+    const n = seq.length; if(!n) return true;
+    const p = seq[n-1];
+    if(t.ink === p.ink || t.word === p.word) return false;
+    if(n >= 3 && seq[n-3].congruent === t.congruent && seq[n-2].congruent === t.congruent && p.congruent === t.congruent) return false;
+    return true;
+  };
+  for(let tries = 0; tries < 5000; tries++){            // randomized greedy build, restart if stuck
+    const pool = base.slice(), seq = [];
+    while(pool.length){
+      const opts = pool.filter(t => fits(seq, t));
+      if(!opts.length) break;
+      const pick = opts[Math.floor(Math.random()*opts.length)];
+      seq.push(pick); pool.splice(pool.indexOf(pick), 1);
+    }
+    if(seq.length === base.length) return seq;
+  }
+  return base;
+}
+
+/* ---------- storage (best effort) ---------- */
+const store = {
+  get(k,d){ try{ const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; }catch(e){ return d; } },
+  set(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); return true; }catch(e){ return false; } }
+};
+const KEY_RUNS = 'hct_runs_v2', KEY_PREFS = 'hct_prefs_v1';
+let runs = store.get(KEY_RUNS, []);
+if(!Array.isArray(runs)) runs = [];
+let prefs = Object.assign({subject:'', session:'Practice', pvtDur:60}, store.get(KEY_PREFS, {}));
+let run = null;
+let lastSaveOk = true;
+
+/* ---------- helpers ---------- */
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const median = a => { if(!a.length) return null; const s=[...a].sort((x,y)=>x-y), m=s.length>>1; return s.length%2 ? s[m] : (s[m-1]+s[m])/2; };
+const mean = a => a.length ? a.reduce((x,y)=>x+y,0)/a.length : null;
+const fmt = (x,d=0) => x==null || isNaN(x) ? '—' : Number(x).toFixed(d);
+const sec = ms => ms==null ? null : ms/1000;
+const num = v => { const n = parseFloat(String(v).replace(',','.')); return isNaN(n) ? null : n; };
+function buzz(ms){ try{ navigator.vibrate && navigator.vibrate(ms); }catch(e){} }
+let wakeLock = null;
+async function keepAwake(on){
+  try{
+    if(on && 'wakeLock' in navigator && !wakeLock){ wakeLock = await navigator.wakeLock.request('screen'); wakeLock.addEventListener('release',()=>{wakeLock=null;}); }
+    else if(!on && wakeLock){ await wakeLock.release(); wakeLock = null; }
+  }catch(e){}
+}
+document.addEventListener('contextmenu', e => { if(e.target.closest('.test')) e.preventDefault(); });
+document.addEventListener('gesturestart', e => e.preventDefault());
+const inFrame = (()=>{ try{ return window.self !== window.top; }catch(e){ return true; } })();
+const evTime = e => (e && e.timeStamp && Math.abs(e.timeStamp - performance.now()) < 1000) ? e.timeStamp : performance.now();
+
+/* ---------- setup ---------- */
+function showSetup(){
+  onHistory = false;
+  keepAwake(false);
+  const sessions = ['Practice','Baseline','Altitude','Recovery'];
+  app.innerHTML = `
+  <div class="screen scroll"><div class="wrap">
+    <h1>Cognition Check</h1>
+    <p class="sub">Reaction block (${prefs.pvtDur} s), 24 color words, then ${MATH_N} arithmetic problems. About 3 minutes for an unimpaired subject.</p>
+    <label>Subject ID<input id="f-subject" value="${esc(prefs.subject)}" autocomplete="off" placeholder="e.g. S01"></label>
+    <label>Session
+      <div class="chips">${sessions.map(s=>`<button type="button" class="chip ${prefs.session===s?'on':''}" data-s="${s}">${s}</button>`).join('')}</div>
+      <input id="f-session" value="${esc(prefs.session)}" autocomplete="off">
+    </label>
+    <label>Altitude (ft)<input id="f-alt" inputmode="numeric" autocomplete="off" placeholder="optional"></label>
+    <label>Notes<input id="f-notes" autocomplete="off" placeholder="optional"></label>
+    <details>
+      <summary>Reaction block length &amp; protocol notes</summary>
+      <label>Reaction block (s)<input id="f-pvt" inputmode="numeric" value="${prefs.pvtDur}"></label>
+      <p class="hint">• Keep the reaction block length identical across every run you plan to compare.<br>
+      • Run Practice sessions on the ground until scores stop improving (often 5–10 runs) before collecting a Baseline.<br>
+      • Use the same phone every time — touchscreen latency differs between devices.<br>
+      • The color-word block needs normal color vision (red/green/blue/yellow).<br>
+      • Every run saves itself on this phone as it goes and uploads to your Claude artifact automatically whenever there's a signal. Start and end times come from the phone's clock — match the pulse-oximeter log to it.</p>
+    </details>
+    <button class="big go" id="b-start">Start test</button>
+    <button class="big ghost" id="b-hist">Results &amp; export (${runs.length})</button>
+  </div></div>`;
+  const sessIn = $('#f-session');
+  app.querySelectorAll('.chip').forEach(c => c.addEventListener('click', () => {
+    app.querySelectorAll('.chip').forEach(x=>x.classList.remove('on')); c.classList.add('on'); sessIn.value = c.dataset.s;
+  }));
+  sessIn.addEventListener('input', () => app.querySelectorAll('.chip').forEach(x=>x.classList.toggle('on', x.dataset.s===sessIn.value)));
+  $('#b-hist').addEventListener('click', showHistory);
+  $('#b-start').addEventListener('click', () => {
+    prefs.subject = $('#f-subject').value.trim();
+    prefs.session = sessIn.value.trim() || 'Untitled';
+    prefs.pvtDur = Math.max(10, Math.min(600, num($('#f-pvt').value) || 60));
+    store.set(KEY_PREFS, prefs);
+    run = {
+      id: 'R' + Date.now().toString(36).toUpperCase(),
+      createdAt: new Date().toISOString(),
+      startedAt: null, endedAt: null, status: 'in_progress', synced: false,
+      subject: prefs.subject || 'unnamed',
+      session: prefs.session,
+      altitudeFt: num($('#f-alt').value),
+      notes: $('#f-notes').value.trim(),
+      pvtDur: prefs.pvtDur, mathForm: MATH_FORM, stroopForm: STROOP_FORM,
+      pvt: [], stroop: [], math: [], summary: null
+    };
+    keepAwake(true);
+    showIntro('pvt');
+  });
+}
+
+/* ---------- intros ---------- */
+function showIntro(which){
+  const body = {
+    pvt: `<h1>Part 1 · Reaction</h1><p>A large circle will appear on the screen.</p><p><b>Tap anywhere as fast as you can</b> when it appears.</p><p class="muted">Wait for the circle before tapping. About ${run.pvtDur} seconds.</p>`,
+    stroop: `<h1>Part 2 · Colors</h1><p>A color word will appear. Tap the button for the <b>INK COLOR</b> — ignore what the word says.</p>
+      <p>Example: <span class="ex" style="color:${SCOLORS.RED}">BLUE</span> → tap <b style="color:${SCOLORS.RED}">RED</b></p><p class="muted">24 words. Fast but accurate.</p>`,
+    math: `<h1>Part 3 · Arithmetic</h1><p>Solve ${MATH_N} problems. Press <b>ENTER</b> after each answer.</p><p>Work as fast as you can <b>without making mistakes</b>.</p><p class="muted">Use ⌫ to fix typos before pressing ENTER.</p>`
+  }[which];
+  app.innerHTML = `<div class="screen intro test">${body}<button class="big go" id="b-go">Begin</button></div>`;
+  $('#b-go').addEventListener('click', { pvt: startPVT, stroop: startStroop, math: startMath }[which]);
+}
+
+function wireAbort(onAbort){
+  const b = $('#b-abort'); let armed = false, t;
+  b.addEventListener('pointerdown', e => {
+    e.preventDefault(); e.stopPropagation();
+    if(armed){ clearTimeout(t); onAbort(); return; }
+    armed = true; b.textContent = 'Tap again to abort'; b.classList.add('armed');
+    t = setTimeout(()=>{ armed=false; b.textContent='Abort'; b.classList.remove('armed'); }, 2500);
+  });
+}
+const abortBtn = `<button class="abort" id="b-abort">Abort</button>`;
+
+/* ---------- Part 1: reaction (brief PVT, subject-blind) ---------- */
+let P = null;
+function startPVT(){
+  app.innerHTML = `<div class="screen test">
+    <div class="topbar"><div class="bar"><i id="prog"></i></div>${abortBtn}</div>
+    <div class="pvt-area" id="pvt-area"><div class="pvt-msg" id="pvt-msg">Get ready…</div><div class="dot" id="dot"></div></div></div>`;
+  P = { t0: performance.now(), phase:'idle', timer:0, n:0, done:false };
+  run.startedAt = new Date().toISOString();
+  saveCurrent();
+  $('#pvt-area').addEventListener('pointerdown', pvtTap);
+  wireAbort(abortRun);
+  const bar = $('#prog');
+  const f = () => { if(P.done) return; bar.style.width = Math.min(100, (performance.now()-P.t0)/(run.pvtDur*1000)*100) + '%'; P.praf = requestAnimationFrame(f); };
+  f();
+  P.timer = setTimeout(() => { const m = $('#pvt-msg'); if(m) m.style.display = 'none'; pvtNext(); }, 1200);
+}
+function dot(on){ const d = $('#dot'); if(d) d.classList.toggle('on', on); }
+function pvtNext(){
+  if(P.done) return;
+  if(performance.now() - P.t0 >= run.pvtDur*1000) return endPVT();
+  P.phase = 'wait';
+  P.isi = 2000 + Math.random()*3000;            // 2–5 s random foreperiod
+  dot(false);
+  P.timer = setTimeout(pvtStim, P.isi);
+}
+function pvtStim(){
+  if(P.done) return;
+  P.phase = 'stim'; P.stimT = performance.now();
+  dot(true);
+  P.timer = setTimeout(() => {                    // no response in 3 s: remove silently
+    if(P.phase !== 'stim') return;
+    pvtRecord(null, 'miss');
+    P.phase = 'gap'; dot(false);
+    P.timer = setTimeout(pvtNext, 300);
+  }, 3000);
+}
+function pvtRecord(rt, outcome){
+  run.pvt.push({ trial: ++P.n, isi: Math.round(P.isi), rt: rt==null ? null : Math.round(rt), outcome,
+    elapsed: Math.round(performance.now()-P.t0), time: new Date().toISOString() });
+  saveCurrent();
+}
+function pvtTap(e){
+  e.preventDefault();
+  const now = evTime(e);
+  if(P.phase === 'wait'){                         // early tap: log it and quietly restart the wait
+    clearTimeout(P.timer);
+    pvtRecord(null, 'false_start');
+    buzz(15);
+    P.phase = 'gap';
+    P.timer = setTimeout(pvtNext, 300);
+  } else if(P.phase === 'stim'){
+    clearTimeout(P.timer);
+    const rt = now - P.stimT;
+    const outcome = rt < 100 ? 'false_start' : (rt >= 500 ? 'lapse' : 'ok');   // standard PVT conventions
+    pvtRecord(rt, outcome);
+    buzz(15);
+    P.phase = 'gap'; dot(false);
+    P.timer = setTimeout(pvtNext, 300);
+  }
+}
+function stopPVT(){ if(!P) return; P.done = true; clearTimeout(P.timer); cancelAnimationFrame(P.praf); }
+function endPVT(){ stopPVT(); showIntro('stroop'); }
+
+/* ---------- Part 2: color words (Stroop, subject-blind) ---------- */
+let S = null;
+function startStroop(){
+  app.innerHTML = `<div class="screen test">
+    <div class="topbar"><div class="count" id="scount"></div>${abortBtn}</div>
+    <div class="sw fix" id="sw">+</div>
+    <div class="cpad" id="cpad">${SNAMES.map(c => `<button class="cbtn" data-c="${c}" style="background:${SCOLORS[c]}">${c}</button>`).join('')}</div></div>`;
+  S = { trials: buildStroop(), n: 0, phase: 'gap', timer: 0, done: false, t0: performance.now() };
+  wireAbort(abortRun);
+  $('#cpad').addEventListener('pointerdown', stroopPress);
+  S.timer = setTimeout(stroopNext, 800);
+}
+function stroopNext(){
+  if(S.done) return;
+  if(S.n >= S.trials.length) return endStroop();
+  const t = S.trials[S.n], w = $('#sw');
+  $('#scount').textContent = `${S.n+1} / ${S.trials.length}`;
+  w.className = 'sw'; w.textContent = t.word; w.style.color = SCOLORS[t.ink];
+  S.phase = 'stim'; S.shownT = performance.now();
+  S.timer = setTimeout(() => { if(S.phase === 'stim') stroopRecord(null, null); }, 3000);
+}
+function stroopRecord(resp, now){
+  clearTimeout(S.timer);
+  const t = S.trials[S.n];
+  run.stroop.push({ trial: S.n+1, word: t.word, ink: t.ink, congruent: t.congruent, response: resp,
+    correct: resp === t.ink, rt: resp ? Math.round(now - S.shownT) : null, outcome: resp ? (resp === t.ink ? 'correct' : 'incorrect') : 'miss',
+    elapsed: Math.round(performance.now() - S.t0), time: new Date().toISOString() });
+  saveCurrent();
+  S.n++; S.phase = 'gap';
+  const w = $('#sw'); if(w){ w.className = 'sw fix'; w.textContent = '+'; w.style.color = ''; }
+  S.timer = setTimeout(stroopNext, 350);
+}
+function stroopPress(e){
+  const b = e.target.closest('.cbtn'); if(!b || !S || S.done) return;
+  e.preventDefault();
+  b.classList.add('down'); setTimeout(() => b.classList.remove('down'), 150);
+  if(S.phase !== 'stim') return;
+  buzz(15);
+  stroopRecord(b.dataset.c, evTime(e));
+}
+function stopStroop(){ if(!S) return; S.done = true; clearTimeout(S.timer); }
+function endStroop(){ stopStroop(); showIntro('math'); }
+
+/* ---------- Part 3: arithmetic (10 fixed-difficulty problems) ---------- */
+let M = null;
+function startMath(){
+  app.innerHTML = `<div class="screen test">
+    <div class="topbar"><div class="count" id="count"></div>${abortBtn}</div>
+    <div class="prob" id="prob"></div>
+    <div class="ans" id="ans"></div>
+    <div class="pad" id="pad">
+      ${[1,2,3,4,5,6,7,8,9].map(n=>`<button class="key" data-k="${n}">${n}</button>`).join('')}
+      <button class="key del" data-k="del" aria-label="Delete">⌫</button>
+      <button class="key" data-k="0">0</button>
+      <button class="key ok" data-k="ok">ENTER</button>
+    </div></div>`;
+  M = { form: buildForm(), input:'', n:0, done:false, cur:null, shownT:0, t0:0 };
+  wireAbort(abortRun);
+  const pad = $('#pad');
+  pad.addEventListener('pointerdown', mathKey);
+  const up = e => { const k=e.target.closest('.key'); k && k.classList.remove('down'); };
+  pad.addEventListener('pointerup', up); pad.addEventListener('pointercancel', up);
+  pad.addEventListener('pointerleave', () => app.querySelectorAll('.key.down').forEach(k=>k.classList.remove('down')));
+  nextProblem();
+  M.t0 = M.shownT;
+}
+function nextProblem(){
+  M.cur = M.form[M.n]; M.input = '';
+  $('#prob').textContent = M.cur.text; $('#ans').textContent = '';
+  $('#count').textContent = `${M.n+1} / ${MATH_N}`;
+  M.shownT = performance.now();
+}
+function mathKey(e){
+  const k = e.target.closest('.key'); if(!k || M.done) return;
+  e.preventDefault();
+  k.classList.add('down'); setTimeout(()=>k.classList.remove('down'), 160);
+  const v = k.dataset.k, now = evTime(e);
+  if(v === 'del'){ M.input = M.input.slice(0,-1); buzz(10); }
+  else if(v === 'ok'){
+    if(!M.input) return;
+    const resp = parseInt(M.input, 10);
+    run.math.push({ trial: ++M.n, slot: M.cur.slot, op: M.cur.op, problem: M.cur.text, answer: M.cur.ans, response: resp,
+      correct: resp === M.cur.ans, rt: Math.round(now - M.shownT), elapsed: Math.round(now - M.t0), time: new Date().toISOString() });
+    saveCurrent();
+    buzz(20);
+    if(M.n >= MATH_N) return endMath();
+    const a = $('#ans'); a.classList.add('sent'); setTimeout(()=>a.classList.remove('sent'), 140);
+    nextProblem(); return;
+  }
+  else { if(M.input.length < 4) M.input += v; buzz(10); }
+  $('#ans').textContent = M.input;
+}
+function endMath(){
+  M.done = true; buzz([60,60,60]);
+  run.endedAt = new Date().toISOString();
+  run.status = 'complete';
+  run.summary = summarize(run);
+  runs.push(run);
+  lastSaveOk = store.set(KEY_RUNS, runs);
+  clearCurrent();
+  keepAwake(false);
+  const done = run; run = null;
+  showResults(done, true);
+  syncPending();
+}
+
+function abortRun(){ stopPVT(); stopStroop(); if(M) M.done = true; run = null; clearCurrent(); keepAwake(false); showSetup(); }
+
+/* ---------- in-progress autosave + crash recovery ---------- */
+const KEY_CUR = 'hct_current_v2';
+function saveCurrent(){ if(run) store.set(KEY_CUR, run); }
+function clearCurrent(){ try{ localStorage.removeItem(KEY_CUR); }catch(e){} }
+function recoverCurrent(){
+  const cur = store.get(KEY_CUR, null);
+  clearCurrent();
+  if(!cur || !cur.id || runs.some(r => r.id === cur.id)) return;
+  if(!(cur.pvt && cur.pvt.length) && !(cur.stroop && cur.stroop.length) && !(cur.math && cur.math.length)) return;
+  const last = [...(cur.pvt||[]), ...(cur.stroop||[]), ...(cur.math||[])].map(t=>t.time).sort().pop();
+  cur.status = 'incomplete'; cur.endedAt = last || null; cur.synced = false;
+  cur.summary = summarize(cur);
+  runs.push(cur); store.set(KEY_RUNS, runs);
+}
+
+/* ---------- automatic cloud copy (artifact database) ---------- */
+let dbP = null, cloud = 'unknown', syncing = false, shownRunId = null;
+function getDb(){
+  if(dbP) return dbP;
+  if(!(window.claude && typeof window.claude.use === 'function')) return Promise.resolve(null);  // e.g. offline file copy
+  dbP = window.claude.use('db').catch(() => null);
+  return dbP;
+}
+const testRunning = () => (P && !P.done) || (S && !S.done) || (M && !M.done);
+async function syncPending(){
+  if(syncing || testRunning()) return;
+  const pending = runs.filter(r => !r.synced);
+  if(!pending.length){ renderSync(); return; }
+  syncing = true;
+  try{
+    const db = await getDb();
+    if(!db){ cloud = 'none'; return; }
+    for(const r of pending){
+      try{
+        const body = JSON.parse(JSON.stringify(r)); delete body.synced; delete body.syncedAt;
+        await db.doc('runs/' + r.id).set(body);
+        r.synced = true; r.syncedAt = new Date().toISOString();
+        store.set(KEY_RUNS, runs);
+        cloud = 'ok';
+      }catch(e){
+        cloud = (e && (e.code === 'quota_exceeded' || e.code === 'invalid_argument' || e.code === 'revoked' || e.code === 'not_granted')) ? 'error' : 'retry';
+        break;
+      }
+    }
+  } finally { syncing = false; renderSync(); }
+}
+let pulling = false, onHistory = false;
+async function pullCloud(){
+  if(pulling || testRunning()) return;
+  pulling = true;
+  try{
+    const db = await getDb(); if(!db) return;
+    const snap = await db.collection('runs').limit(1000).get();
+    let added = 0;
+    snap.docs.forEach(d => {
+      const data = d.data(); if(!data || !data.id) return;
+      const local = runs.find(r => r.id === data.id);
+      if(local){ if(!local.synced){ /* local copy not yet uploaded: keep it */ } return; }
+      runs.push(Object.assign(JSON.parse(JSON.stringify(data)), { synced: true }));
+      added++;
+    });
+    if(added){
+      const t = r => r.startedAt || r.createdAt || '';
+      runs.sort((a,b) => t(a) < t(b) ? -1 : t(a) > t(b) ? 1 : 0);
+      store.set(KEY_RUNS, runs);
+      if(onHistory) showHistory();
+      const hb = document.getElementById('b-hist'); if(hb && !onHistory) hb.innerHTML = `Results &amp; export (${runs.length})`;
+    }
+  }catch(e){} finally { pulling = false; }
+}
+function syncText(r){
+  if(r.synced) return `<span class="better">✓ Uploaded</span> to your Claude artifact · ✓ saved on this phone`;
+  if(cloud === 'none') return `✓ Kept in this app on this phone.`;
+  if(cloud === 'error') return `✓ Saved on this phone. <span class="worse">Upload was refused</span> — screenshot this screen.`;
+  return `✓ Saved on this phone. ⏳ Will upload automatically the next time this page is open with a signal.`;
+}
+function renderSync(){
+  const el = document.getElementById('sync-status');
+  if(el && shownRunId){ const r = runs.find(x => x.id === shownRunId); if(r) el.innerHTML = syncText(r); }
+  app.querySelectorAll('[data-sync]').forEach(td => { const r = runs.find(x => x.id === td.dataset.sync); if(r) td.textContent = r.synced ? '✓' : '⏳'; });
+}
+window.addEventListener('online', () => setTimeout(syncPending, 1500));
+document.addEventListener('visibilitychange', () => { if(document.visibilityState === 'visible') syncPending(); });
+setInterval(() => { if(runs.some(r => !r.synced)) syncPending(); }, 60000);
+
+/* ---------- clock formatting ---------- */
+const p2 = n => String(n).padStart(2,'0');
+function tzLabel(d){ const off = -d.getTimezoneOffset(), a = Math.abs(off); return `UTC${off>=0?'+':'-'}${p2(Math.floor(a/60))}:${p2(a%60)}`; }
+function localStamp(iso){ if(!iso) return ''; const d = new Date(iso);
+  return `${d.getFullYear()}-${p2(d.getMonth()+1)}-${p2(d.getDate())} ${p2(d.getHours())}:${p2(d.getMinutes())}:${p2(d.getSeconds())}`; }
+function clockOnly(iso){ if(!iso) return '—'; const d = new Date(iso); return `${p2(d.getHours())}:${p2(d.getMinutes())}:${p2(d.getSeconds())}`; }
+function durS(r){ return r.startedAt && r.endedAt ? (new Date(r.endedAt) - new Date(r.startedAt))/1000 : null; }
+
+/* ---------- scoring ---------- */
+function summarize(r){
+  const valid = r.pvt.filter(t => t.outcome==='ok' || t.outcome==='lapse').map(t=>t.rt);
+  const lapses = r.pvt.filter(t => t.outcome==='lapse' || t.outcome==='miss').length;
+  const fs = r.pvt.filter(t => t.outcome==='false_start').length;
+  const all = r.math.map(t=>t.rt), cor = r.math.filter(t=>t.correct).map(t=>t.rt);
+  const st = r.stroop || [];
+  const sc = st.filter(t => t.correct && t.congruent).map(t=>t.rt), si = st.filter(t => t.correct && !t.congruent).map(t=>t.rt);
+  const scm = median(sc), sim = median(si);
+  return {
+    stroop_trials: st.length, stroop_correct: st.filter(t=>t.correct).length,
+    stroop_accuracy_pct: st.length ? st.filter(t=>t.correct).length/st.length*100 : null,
+    stroop_misses: st.filter(t=>t.outcome==='miss').length,
+    stroop_median_congruent_ms: scm, stroop_median_incongruent_ms: sim,
+    stroop_interference_ms: scm!=null && sim!=null ? sim - scm : null,
+    pvt_trials: r.pvt.length, pvt_valid: valid.length,
+    pvt_median_ms: median(valid), pvt_mean_ms: mean(valid),
+    pvt_lapses: lapses, pvt_false_starts: fs,
+    math_attempted: all.length, math_correct: cor.length,
+    math_accuracy_pct: all.length ? cor.length/all.length*100 : null,
+    math_mean_correct_ms: mean(cor), math_median_correct_ms: median(cor),
+    math_mean_all_ms: mean(all), math_median_all_ms: median(all),
+    math_total_ms: r.math.length ? r.math[r.math.length-1].elapsed : null
+  };
+}
+function findBaseline(r){
+  const subj = (r.subject||'').toLowerCase();
+  for(let i = runs.length-1; i >= 0; i--){
+    const b = runs[i];
+    if(b.id !== r.id && b.status !== 'incomplete' && /baseline/i.test(b.session) && (b.subject||'').toLowerCase() === subj
+       && b.pvtDur === r.pvtDur && b.mathForm === r.mathForm && b.stroopForm === r.stroopForm && b.startedAt < r.startedAt) return b;
+  }
+  return null;
+}
+function delta(cur, base, higherIsWorse, digits=0, unit=''){
+  if(cur==null || base==null) return '';
+  const d = cur - base;
+  const pct = base !== 0 && unit !== ' pts' ? ` (${d>=0?'+':''}${fmt(d/base*100)}%)` : '';
+  const worse = higherIsWorse ? d > 0 : d < 0;
+  const cls = Math.abs(d) < 1e-9 ? 'same' : (worse ? 'worse' : 'better');
+  return `<div class="d ${cls}">${d>=0?'+':''}${fmt(d,digits)}${unit}${pct}</div>`;
+}
+
+/* ---------- CSV ---------- */
+const csvCell = v => { const s = v==null ? '' : String(v); return /[",\n]/.test(s) ? `"${s.replace(/"/g,'""')}"` : s; };
+const csvRows = rows => rows.map(r => r.map(csvCell).join(',')).join('\n');
+function summaryCSV(list){
+  const head = ['run_id','status','subject','session','altitude_ft','notes','start_local','end_local','utc_offset','start_utc','end_utc','duration_s','pvt_dur_s','math_form',
+    'pvt_trials','pvt_valid','pvt_median_ms','pvt_mean_ms','pvt_lapses','pvt_false_starts',
+    'stroop_form','stroop_trials','stroop_correct','stroop_accuracy_pct','stroop_misses','stroop_median_congruent_ms','stroop_median_incongruent_ms','stroop_interference_ms',
+    'math_attempted','math_correct','math_accuracy_pct','math_mean_correct_s','math_median_correct_s',
+    'math_mean_all_s','math_median_all_s','math_total_s'];
+  return csvRows([head, ...list.map(r => { const s = r.summary || summarize(r); return [
+    r.id, r.status || 'complete', r.subject, r.session, r.altitudeFt, r.notes,
+    localStamp(r.startedAt), localStamp(r.endedAt), r.startedAt ? tzLabel(new Date(r.startedAt)) : '', r.startedAt, r.endedAt, fmt(durS(r),1),
+    r.pvtDur, r.mathForm,
+    s.pvt_trials, s.pvt_valid, fmt(s.pvt_median_ms), fmt(s.pvt_mean_ms), s.pvt_lapses, s.pvt_false_starts,
+    r.stroopForm || '', s.stroop_trials, s.stroop_correct, fmt(s.stroop_accuracy_pct,1), s.stroop_misses,
+    fmt(s.stroop_median_congruent_ms), fmt(s.stroop_median_incongruent_ms), fmt(s.stroop_interference_ms),
+    s.math_attempted, s.math_correct, fmt(s.math_accuracy_pct,1),
+    fmt(sec(s.math_mean_correct_ms),3), fmt(sec(s.math_median_correct_ms),3),
+    fmt(sec(s.math_mean_all_ms),3), fmt(sec(s.math_median_all_ms),3), fmt(sec(s.math_total_ms),3)
+  ]; })]);
+}
+function trialsCSV(list){
+  const head = ['run_id','subject','session','altitude_ft','block','trial','slot','condition','stimulus','correct_answer','response','correct','rt_ms','foreperiod_ms','outcome','elapsed_ms','time_local','time_utc'];
+  const rows = [head];
+  list.forEach(r => {
+    r.pvt.forEach(t => rows.push([r.id, r.subject, r.session, r.altitudeFt, 'reaction', t.trial, '', '', '', '', '', '', t.rt, t.isi, t.outcome, t.elapsed, localStamp(t.time), t.time]));
+    (r.stroop||[]).forEach(t => rows.push([r.id, r.subject, r.session, r.altitudeFt, 'stroop', t.trial, '', t.congruent ? 'congruent' : 'incongruent', `${t.word} in ${t.ink}`, t.ink, t.response || '', t.correct ? 1 : 0, t.rt, '', t.outcome, t.elapsed, localStamp(t.time), t.time]));
+    r.math.forEach(t => rows.push([r.id, r.subject, r.session, r.altitudeFt, 'arithmetic', t.trial, t.slot, '', t.problem, t.answer, t.response, t.correct ? 1 : 0, t.rt, '', t.correct ? 'correct' : 'incorrect', t.elapsed, localStamp(t.time), t.time]));
+  });
+  return csvRows(rows);
+}
+async function copyOut(text, btn){
+  let ok = false;
+  try{ await navigator.clipboard.writeText(text); ok = true; }catch(e){}
+  if(!ok){ try{ const ta=document.createElement('textarea'); ta.value=text; ta.style.position='fixed'; ta.style.opacity='0';
+    document.body.appendChild(ta); ta.select(); ok = document.execCommand('copy'); ta.remove(); }catch(e){} }
+  const out = $('#csv-out');
+  if(out){ out.style.display='block'; out.value = text; }
+  const orig = btn.dataset.label || btn.textContent; btn.dataset.label = orig;
+  btn.textContent = ok ? 'Copied ✓' : 'Select text below to copy';
+  setTimeout(()=>{ btn.textContent = orig; }, 2500);
+}
+const isStandalone = () => window.navigator.standalone === true || (window.matchMedia && matchMedia('(display-mode: standalone)').matches);
+const safeName = x => String(x||'').replace(/[^A-Za-z0-9._-]+/g,'-').replace(/^-+|-+$/g,'').slice(0,40) || 'x';
+function fileStamp(iso){ const d = iso ? new Date(iso) : new Date(); return `${d.getFullYear()}-${p2(d.getMonth()+1)}-${p2(d.getDate())}_${p2(d.getHours())}${p2(d.getMinutes())}${p2(d.getSeconds())}`; }
+function runFileName(r){ return `CogCheck_${safeName(r.subject)}_${safeName(r.session)}_${fileStamp(r.startedAt || r.createdAt)}.csv`; }
+function saveHint(){
+  if(inFrame) return 'Confirm the download when asked.';
+  if(isStandalone()) return 'Then tap “Save to Files” → Save.';
+  return 'Then tap “Download” if Safari asks.';
+}
+/* Save a text file to the phone. Returns 'saved' | 'cancelled' | 'failed'. */
+async function saveFile(name, text){
+  if(inFrame){                                            // inside Claude: platform download prompt
+    try{
+      const dl = (window.claude && typeof window.claude.use === 'function') ? await window.claude.use('downloads') : null;
+      if(!dl) return 'failed';
+      await dl.save({ filename: name, data: text });
+      return 'saved';
+    }catch(e){ return e && e.code === 'declined' ? 'cancelled' : 'failed'; }
+  }
+  let file = null, canShareFile = false;
+  try{ file = new File([text], name, { type: 'text/csv' }); canShareFile = !!(navigator.canShare && navigator.canShare({ files: [file] })); }catch(e){}
+  const share = async () => { try{ await navigator.share({ files: [file] }); return 'saved'; }catch(e){ return e && e.name === 'AbortError' ? 'cancelled' : 'failed'; } };
+  if(isStandalone() && canShareFile) return share();     // home-screen app: share sheet → Save to Files
+  try{                                                    // Safari tab / desktop: normal download
+    const url = URL.createObjectURL(new Blob([text], { type: 'text/csv' }));
+    const a = document.createElement('a'); a.href = url; a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+    return 'saved';
+  }catch(e){}
+  return canShareFile ? share() : 'failed';
+}
+function exportButtons(){
+  return `<div class="btnrow">
+      <button class="small" data-x="ssum">Save summary CSV</button>
+      <button class="small" data-x="stri">Save trial-level CSV</button>
+      <button class="small" data-x="sum">Copy summary CSV</button>
+      <button class="small" data-x="tri">Copy trial-level CSV</button>
+    </div>
+    <div class="hint" id="exp-msg"></div>
+    <textarea id="csv-out" style="display:none" readonly></textarea>`;
+}
+function wireExport(getRuns, tag){
+  app.querySelectorAll('[data-x]').forEach(b => b.addEventListener('click', async () => {
+    const list = getRuns(), x = b.dataset.x, msg = $('#exp-msg');
+    if(x === 'sum') return copyOut(summaryCSV(list), b);
+    if(x === 'tri') return copyOut(trialsCSV(list), b);
+    const kind = x === 'ssum' ? 'summary' : 'trials';
+    const res = await saveFile(`CogCheck_${kind}_${safeName(tag)}_${fileStamp()}.csv`, kind === 'summary' ? summaryCSV(list) : trialsCSV(list));
+    if(msg) msg.textContent = res === 'saved' ? `✓ ${kind} file saved` : res === 'cancelled' ? 'Not saved.' : "This view can't save files — use Copy instead.";
+  }));
+}
+
+/* ---------- results ---------- */
+function stat(v, unit, label, d){ return `<div class="stat"><div class="v">${v}${unit?` <small>${unit}</small>`:''}</div><div class="l">${label}</div>${d||''}</div>`; }
+function showResults(r, fresh){
+  onHistory = false;
+  const s = r.summary || summarize(r), base = findBaseline(r), b = base ? (base.summary || summarize(base)) : null;
+  const S = x => fmt(sec(x),2);
+  const st = r.startedAt || r.createdAt, dur = durS(r);
+  shownRunId = r.id;
+  const dS = (cur, bb) => b ? delta(sec(cur), sec(bb), true, 2, ' s') : '';
+  app.innerHTML = `
+  <div class="screen scroll res"><div class="wrap">
+    <div class="shot">📸 <b>Screenshot this screen, then tap SAVE.</b> <span>(side button + volume up)</span></div>
+    <button class="big go savebtn ${r.exportedAt ? 'done' : ''}" id="b-save">${r.exportedAt ? '✓ Saved to phone — tap to save again' : '💾 SAVE RESULTS TO PHONE'}</button>
+    <div class="savehint" id="save-hint">${saveHint()}</div>
+    ${fresh && !lastSaveOk ? `<div class="note">This phone didn't let the run be saved in the app. Tap SAVE and take the screenshot before leaving this screen.</div>` : ''}
+    <h1>${esc(r.subject)} · ${esc(r.session)}${r.status==='incomplete' ? ' <span class="worse">(incomplete)</span>' : ''}</h1>
+    <div class="clock"><div><div class="l">Start</div><div class="v">${clockOnly(r.startedAt)}</div></div>
+      <div><div class="l">End</div><div class="v">${clockOnly(r.endedAt)}</div></div>
+      <div><div class="l">Duration</div><div class="v">${dur!=null ? Math.floor(dur/60)+':'+p2(Math.round(dur%60)) : '—'}</div></div></div>
+    <div class="meta">${st ? localStamp(st).slice(0,10) + ' · phone clock, ' + tzLabel(new Date(st)) : ''} · Run ${esc(r.id)}<br>
+      Altitude: ${r.altitudeFt!=null ? esc(r.altitudeFt)+' ft' : '—'}${r.notes ? ' · Notes: '+esc(r.notes) : ''}<br>
+      <span id="sync-status">${syncText(r)}</span><br>
+      ${base ? `Colored lines = change vs baseline (${new Date(base.startedAt).toLocaleString()})` : 'No earlier Baseline run for this subject to compare with.'}</div>
+    <div class="card"><h3>Reaction · ${s.pvt_valid}/${s.pvt_trials} valid</h3><div class="stats c4">
+      ${stat(fmt(s.pvt_median_ms),'ms','Median RT', b?delta(s.pvt_median_ms,b.pvt_median_ms,true,0,''):'')}
+      ${stat(fmt(s.pvt_mean_ms),'ms','Mean RT', b?delta(s.pvt_mean_ms,b.pvt_mean_ms,true,0,''):'')}
+      ${stat(s.pvt_lapses,'','Lapses ≥500 ms', b?delta(s.pvt_lapses,b.pvt_lapses,true):'')}
+      ${stat(s.pvt_false_starts,'','False starts', b?delta(s.pvt_false_starts,b.pvt_false_starts,true):'')}
+    </div></div>
+    ${s.stroop_trials ? `<div class="card"><h3>Colors · ${s.stroop_correct}/${s.stroop_trials} correct${s.stroop_misses ? ` · ${s.stroop_misses} missed` : ''}</h3><div class="stats c4">
+      ${stat(fmt(s.stroop_accuracy_pct)+'%','','Accuracy', b?delta(s.stroop_accuracy_pct,b.stroop_accuracy_pct,false,0,' pts'):'')}
+      ${stat(fmt(s.stroop_median_congruent_ms),'ms','Median, matching', b?delta(s.stroop_median_congruent_ms,b.stroop_median_congruent_ms,true,0,''):'')}
+      ${stat(fmt(s.stroop_median_incongruent_ms),'ms','Median, conflicting', b?delta(s.stroop_median_incongruent_ms,b.stroop_median_incongruent_ms,true,0,''):'')}
+      ${stat(fmt(s.stroop_interference_ms),'ms','Interference', b?delta(s.stroop_interference_ms,b.stroop_interference_ms,true,0,''):'')}
+    </div></div>` : ''}
+    <div class="card"><h3>Arithmetic · ${s.math_correct}/${s.math_attempted} correct</h3><div class="stats c3">
+      ${stat(fmt(s.math_accuracy_pct)+'%','','Accuracy', b?delta(s.math_accuracy_pct,b.math_accuracy_pct,false,0,' pts'):'')}
+      ${stat(S(s.math_total_ms),'s','Total time', dS(s.math_total_ms,b&&b.math_total_ms))}
+      ${stat(S(s.math_mean_correct_ms),'s','Avg / correct', dS(s.math_mean_correct_ms,b&&b.math_mean_correct_ms))}
+      ${stat(S(s.math_median_correct_ms),'s','Median / correct', dS(s.math_median_correct_ms,b&&b.math_median_correct_ms))}
+      ${stat(S(s.math_mean_all_ms),'s','Avg / any answer', dS(s.math_mean_all_ms,b&&b.math_mean_all_ms))}
+      ${stat(S(s.math_median_all_ms),'s','Median / any answer', dS(s.math_median_all_ms,b&&b.math_median_all_ms))}
+    </div></div>
+    <h2>More export options</h2>
+    ${exportButtons()}
+    <button class="big go" id="b-new">New run</button>
+    <button class="big ghost" id="b-hist">All results</button>
+  </div></div>`;
+  wireExport(() => [r], r.subject + '_' + r.session);
+  $('#b-save').addEventListener('click', async () => {
+    const btn = $('#b-save'), hint = $('#save-hint');
+    btn.textContent = 'Saving…';
+    const res = await saveFile(runFileName(r), trialsCSV([r]));
+    if(res === 'saved'){
+      r.exportedAt = new Date().toISOString(); store.set(KEY_RUNS, runs);
+      btn.classList.add('done'); btn.textContent = '✓ Saved to phone — tap to save again';
+      hint.textContent = isStandalone() || inFrame ? 'Saved.' : 'Saved to Files → Downloads.';
+    } else if(res === 'cancelled'){
+      btn.textContent = '💾 SAVE RESULTS TO PHONE'; hint.textContent = 'Not saved — tap SAVE again.';
+    } else {
+      btn.textContent = '💾 SAVE RESULTS TO PHONE';
+      hint.textContent = "This view can't save files. The results are still kept in this app, and your screenshot is the backup.";
+    }
+  });
+  $('#b-new').addEventListener('click', showSetup);
+  $('#b-hist').addEventListener('click', showHistory);
+}
+
+/* ---------- history ---------- */
+function showHistory(){
+  onHistory = true;
+  const list = [...runs].reverse();
+  app.innerHTML = `
+  <div class="screen scroll"><div class="wrap">
+    <h1>All results</h1>
+    <p class="sub">${runs.length} run${runs.length===1?'':'s'} in this app${inFrame ? ' (plus any uploaded from other devices). Cloud: ✓ uploaded, ⏳ waiting for a signal' : ''}. ✗ = incomplete run. Tap a row for details.</p>
+    ${runs.length ? `<div class="card tablewrap"><table>
+      <tr><th>Date</th><th>Subj</th><th>Session</th><th>Start</th><th>End</th><th>Alt</th><th>RT med</th><th>Lapses</th><th>Stroop int</th><th>Acc</th><th>Math s</th>${inFrame ? '<th>Cloud</th>' : ''}</tr>
+      ${list.map((r,i) => { const s = r.summary || summarize(r); const d = new Date(r.startedAt || r.createdAt); return `
+        <tr class="click" data-i="${runs.length-1-i}">
+          <td>${d.toLocaleDateString(undefined,{month:'short',day:'numeric'})} ${d.toLocaleTimeString(undefined,{hour:'2-digit',minute:'2-digit'})}</td>
+          <td>${esc(r.subject)}</td><td>${esc(r.session)}${r.status==='incomplete'?' ✗':''}</td><td>${clockOnly(r.startedAt)}</td><td>${clockOnly(r.endedAt)}</td><td>${r.altitudeFt ?? '—'}</td>
+          <td>${fmt(s.pvt_median_ms)}</td><td>${s.pvt_lapses}</td><td>${fmt(s.stroop_interference_ms)}</td><td>${fmt(s.math_accuracy_pct)}%</td><td>${fmt(sec(s.math_total_ms),1)}</td>${inFrame ? `<td data-sync="${esc(r.id)}">${r.synced?'✓':'⏳'}</td>` : ''}
+        </tr>`; }).join('')}
+    </table></div>
+    <h2>Save or copy all runs</h2>
+    ${exportButtons()}` : ''}
+    <button class="big go" id="b-back">Back</button>
+    ${runs.length ? `<button class="big ghost danger" id="b-clear">Delete all results</button>` : ''}
+  </div></div>`;
+  app.querySelectorAll('tr.click').forEach(tr => tr.addEventListener('click', () => showResults(runs[+tr.dataset.i], false)));
+  if(runs.length) wireExport(() => runs, 'all-runs');
+  pullCloud();
+  $('#b-back').addEventListener('click', showSetup);
+  const c = $('#b-clear');
+  if(c){ let armed = false;
+    c.addEventListener('click', () => {
+      if(armed){ runs = []; store.set(KEY_RUNS, runs); showHistory(); return; }
+      armed = true; c.textContent = 'Tap again to delete everything'; c.style.background = 'var(--bad)'; c.style.color = '#fff';
+      setTimeout(()=>{ armed=false; c.textContent='Delete all results'; c.style.background=''; c.style.color=''; }, 3000);
+    });
+  }
+}
+
+if('serviceWorker' in navigator && !inFrame && /^https?:$/.test(location.protocol)){
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+try{ if(!inFrame && navigator.storage && navigator.storage.persist) navigator.storage.persist(); }catch(e){}
+recoverCurrent();
+showSetup();
+setTimeout(async () => { await syncPending(); pullCloud(); }, 1500);
+})();
+</script>
+</body>
+</html>
